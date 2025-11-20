@@ -4,6 +4,7 @@
 #include <limits>
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
 #endif
 #include <locale>
 #include <iostream>
@@ -25,7 +26,6 @@ const string FILE2_PATH = "C:/Users/user/CLionProjects/UTP/forStudents.bin";
 
 void processChoice(int choice);
 
-
 string toLowerUtf8(const string& s);
 int utf8_width(const std::string& s);
 void printPadded(const string& s, int width);
@@ -33,6 +33,7 @@ void expandArray();
 void editStudent(int index);
 void deleteStudent(int index);
 void printArray();
+int getConsoleWidth();
 void addStudentToArray(const Student &student);
 void sortStudentsByYear();
 bool checkAvailability();
@@ -193,6 +194,18 @@ void processChoice(int choice) {
 
 
 
+int getConsoleWidth() {
+#ifdef _WIN32
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
+        return csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    }
+    return 120; // Default fallback for Windows
+#else
+    return 120; // Default for non-Windows
+#endif
+}
+
 int utf8_width(const string& s) {
     int count = 0;
     for (size_t i = 0; i < s.size(); ) {
@@ -262,10 +275,11 @@ vector<string> wrapUtf8(const string& s, int maxWidth) {
 }
 
 void printSeparatorLine(const vector<int>& colWidths) {
+    int totalWidth = 1; // Start with 1 for the first |
     for (size_t i = 0; i < colWidths.size(); i++) {
-        cout << string(colWidths[i] + 2, '-');
+        totalWidth += colWidths[i] + 2; // content + space + |
     }
-    cout << "\n";
+    cout << string(totalWidth, '-') << "\n";
 }
 
 void printWrappedRow(const vector<vector<string>>& wrappedCols, const vector<int>& colWidths) {
@@ -306,7 +320,12 @@ void printArray() {
         "Предмет 1", "Оценки 1", "Предмет 2", "Оценки 2", "Предмет 3", "Оценки 3"
     };
     
-    const int MAX_CELL_WIDTH = 20;
+    // Adjust max cell width for Windows console compatibility
+    int consoleWidth = getConsoleWidth();
+    int estimatedCols = headers.size();
+    int maxTableWidth = max(80, consoleWidth - 5); // Reserve some margin
+    int maxCellWidth = min(20, max(8, (maxTableWidth - estimatedCols * 3) / estimatedCols));
+    const int MAX_CELL_WIDTH = maxCellWidth;
     vector<int> colWidths(headers.size(), 0);
     
     for (size_t i = 0; i < headers.size(); i++) {
