@@ -2,7 +2,9 @@
 #include <filesystem>
 #include <iomanip>
 #include <limits>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include <locale>
 #include <iostream>
 #include <algorithm>
@@ -14,6 +16,7 @@
 using namespace std;
 
 Student *students = new Student[10];
+
 int studentCount = 0;
 int capacity = 10;
 
@@ -31,6 +34,7 @@ void editStudent(int index);
 void deleteStudent(int index);
 void printArray();
 void addStudentToArray(const Student &student);
+void sortStudentsByYear();
 bool checkAvailability();
 void saveToFile();
 void loadFromFile();
@@ -71,8 +75,10 @@ bool checkGrades(string s) {
 }
 
 int main() {
+#ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
+#endif
     std::locale::global(std::locale(""));
 
     while (true) {
@@ -187,8 +193,6 @@ void processChoice(int choice) {
 
 
 
-// UTF-8 CHARACTER WIDTH (counts characters, not bytes)
-// ------------------------------------------------
 int utf8_width(const string& s) {
     int count = 0;
     for (size_t i = 0; i < s.size(); ) {
@@ -206,95 +210,179 @@ int utf8_width(const string& s) {
     return count;
 }
 
+// UTF-8 SUBSTRING BY VISIBLE CHARACTER INDICES
 // ------------------------------------------------
-// PRINT UTF-8 STRING WITH PADDING
-// ------------------------------------------------
-void printPadded(const string& s, int width) {
-    int w = utf8_width(s);
-    cout << s;
-    for (int i = 0; i < width - w; i++)
-        cout << ' ';
+string utf8_substr(const string& s, int start, int length) {
+    if (start < 0 || length <= 0) return "";
+    
+    string result = "";
+    int charCount = 0;
+    int collected = 0;
+    
+    for (size_t i = 0; i < s.size() && collected < length; ) {
+        unsigned char c = s[i];
+        int len = 1;
+
+        if ((c & 0x80) == 0) len = 1;           // ASCII
+        else if ((c & 0xE0) == 0xC0) len = 2;  // 2-byte UTF-8
+        else if ((c & 0xF0) == 0xE0) len = 3;  // 3-byte UTF-8
+        else if ((c & 0xF8) == 0xF0) len = 4;  // 4-byte UTF-8
+
+        if (charCount >= start) {
+            result += s.substr(i, len);
+            collected++;
+        }
+        
+        i += len;
+        charCount++;
+    }
+    
+    return result;
 }
 
-// ------------------------------------------------
-// FULL DYNAMIC UTF-8 SAFE TABLE PRINTER
-// ------------------------------------------------
+vector<string> wrapUtf8(const string& s, int maxWidth) {
+    vector<string> lines;
+    if (maxWidth <= 0) return lines;
+    
+    int totalChars = utf8_width(s);
+    if (totalChars <= maxWidth) {
+        lines.push_back(s);
+        return lines;
+    }
+    
+    int start = 0;
+    while (start < totalChars) {
+        int chunkSize = min(maxWidth, totalChars - start);
+        string chunk = utf8_substr(s, start, chunkSize);
+        lines.push_back(chunk);
+        start += chunkSize;
+    }
+    
+    return lines;
+}
+
+void printSeparatorLine(const vector<int>& colWidths) {
+    for (size_t i = 0; i < colWidths.size(); i++) {
+        cout << string(colWidths[i] + 2, '-');
+    }
+    cout << "\n";
+}
+
+void printWrappedRow(const vector<vector<string>>& wrappedCols, const vector<int>& colWidths) {
+    int maxLines = 0;
+    for (const auto& col : wrappedCols) {
+        maxLines = max(maxLines, (int)col.size());
+    }
+    
+    for (int line = 0; line < maxLines; line++) {
+        cout << "|";
+        for (size_t col = 0; col < wrappedCols.size(); col++) {
+            string cellContent = "";
+            if (line < wrappedCols[col].size()) {
+                cellContent = wrappedCols[col][line];
+            }
+            
+            int contentWidth = utf8_width(cellContent);
+            int padding = colWidths[col] - contentWidth;
+            
+            cout << cellContent;
+            cout << string(padding + 1, ' ');
+            cout << "|";
+        }
+        cout << "\n";
+    }
+}
+
 void printArray() {
     if (studentCount == 0) {
         cout << "Нет студентов.\n";
         return;
     }
+    
+    sortStudentsByYear();
 
-    // ----- Column widths -----
-    int wNo        = 2;
-    int wYear      = 4;
-    int wCourse    = 6;
-    int wName      = 4;
-    int wSurname   = 7;
-    int wMidName   = 11;
-    int wSubject   = 8;
-    int wGrades    = 6;
-
+    vector<string> headers = {
+        "№", "Год", "Курс", "Имя", "Фамилия", "Отчество",
+        "Предмет 1", "Оценки 1", "Предмет 2", "Оценки 2", "Предмет 3", "Оценки 3"
+    };
+    
+    const int MAX_CELL_WIDTH = 20;
+    vector<int> colWidths(headers.size(), 0);
+    
+    for (size_t i = 0; i < headers.size(); i++) {
+        colWidths[i] = min(MAX_CELL_WIDTH, utf8_width(headers[i]));
+    }
+    
     for (int i = 0; i < studentCount; i++) {
-
-        wName      = max(wName,      utf8_width(students[i].name));
-        wSurname   = max(wSurname,   utf8_width(students[i].surname));
-        wMidName   = max(wMidName,   utf8_width(students[i].middleName));
-
-        wYear      = max(wYear,      (int)to_string(students[i].year).size());
-        wCourse    = max(wCourse,    (int)to_string(students[i].course).size());
-
-        for (int j = 0; j < 3; j++) {
-            wSubject = max(wSubject, utf8_width(students[i].subjects[j]));
-            wGrades  = max(wGrades,  utf8_width(students[i].grades[j]));
+        vector<string> rowData = {
+            to_string(i + 1),                    // No
+            to_string(students[i].year),         // Year  
+            to_string(students[i].course),       // Course
+            students[i].name,                    // Name
+            students[i].surname,                 // Surname
+            students[i].middleName,              // Middle Name
+            students[i].subjects[0],             // Subject 1
+            students[i].grades[0],               // Grades 1
+            students[i].subjects[1],             // Subject 2
+            students[i].grades[1],               // Grades 2
+            students[i].subjects[2],             // Subject 3
+            students[i].grades[2]                // Grades 3
+        };
+        
+        for (size_t j = 0; j < rowData.size(); j++) {
+            int contentWidth = utf8_width(rowData[j]);
+            int requiredWidth = min(MAX_CELL_WIDTH, contentWidth);
+            colWidths[j] = max(colWidths[j], requiredWidth);
         }
     }
-
-    // ----- HEADER -----
-    cout << "|"; printPadded("No", wNo + 2);
-    cout << "|"; printPadded("Year", wYear + 2);
-    cout << "|"; printPadded("Course", wCourse + 2);
-    cout << "|"; printPadded("Name", wName + 2);
-    cout << "|"; printPadded("Surname", wSurname + 2);
-    cout << "|"; printPadded("Middle Name", wMidName + 2);
-
-    for (int i = 1; i <= 3; i++) {
-        string s = "Subject " + to_string(i);
-        cout << "|"; printPadded(s, wSubject + 2);
-        cout << "|"; printPadded("Grades", wGrades + 2);
+    
+    vector<vector<string>> headerWrapped(headers.size());
+    for (size_t i = 0; i < headers.size(); i++) {
+        headerWrapped[i] = wrapUtf8(headers[i], colWidths[i]);
     }
-    cout << "|\n";
-
-    // ----- SEPARATOR -----
-    int totalWidth =
-        1 + (wNo + 2) +
-        1 + (wYear + 2) +
-        1 + (wCourse + 2) +
-        1 + (wName + 2) +
-        1 + (wSurname + 2) +
-        1 + (wMidName + 2) +
-        3 * (1 + (wSubject + 2) + 1 + (wGrades + 2)) +
-        1;
-
-    cout << string(totalWidth, '-') << "\n";
-
-    // ----- ROWS -----
+    printWrappedRow(headerWrapped, colWidths);
+    
+    printSeparatorLine(colWidths);
+    
     for (int i = 0; i < studentCount; i++) {
-        cout << "|"; printPadded(to_string(i + 1), wNo + 2);
-        cout << "|"; printPadded(to_string(students[i].year),   wYear + 2);
-        cout << "|"; printPadded(to_string(students[i].course), wCourse + 2);
-        cout << "|"; printPadded(students[i].name,              wName + 2);
-        cout << "|"; printPadded(students[i].surname,           wSurname + 2);
-        cout << "|"; printPadded(students[i].middleName,        wMidName + 2);
-
-        for (int j = 0; j < 3; j++) {
-            cout << "|"; printPadded(students[i].subjects[j], wSubject + 2);
-            cout << "|"; printPadded(students[i].grades[j],   wGrades + 2);
+        vector<string> rowData = {
+            to_string(i + 1),                    // No
+            to_string(students[i].year),         // Year  
+            to_string(students[i].course),       // Course
+            students[i].name,                    // Name
+            students[i].surname,                 // Surname
+            students[i].middleName,              // Middle Name
+            students[i].subjects[0],             // Subject 1
+            students[i].grades[0],               // Grades 1
+            students[i].subjects[1],             // Subject 2
+            students[i].grades[1],               // Grades 2
+            students[i].subjects[2],             // Subject 3
+            students[i].grades[2]                // Grades 3
+        };
+        
+        vector<vector<string>> wrappedRow(rowData.size());
+        for (size_t j = 0; j < rowData.size(); j++) {
+            wrappedRow[j] = wrapUtf8(rowData[j], colWidths[j]);
         }
-
-        cout << "|\n";
+        
+        printWrappedRow(wrappedRow, colWidths);
+        
+        printSeparatorLine(colWidths);
     }
 }
+
+void sortStudentsByYear() {
+    for (int i = 0; i < studentCount - 1; i++) {
+        for (int j = 0; j < studentCount - i - 1; j++) {
+            if (students[j].year > students[j + 1].year) {
+                Student temp = students[j];
+                students[j] = students[j + 1];
+                students[j + 1] = temp;
+            }
+        }
+    }
+}
+
 bool checkAvailability() {
     if (studentCount + 1 > capacity) expandArray();
     return true;

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.10)
 project(UTP)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -6,6 +6,4 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(UTP main.cpp
         Student.cpp
         Student.h
-        lab2vp.cpp
-        lab2vp.h
 )
