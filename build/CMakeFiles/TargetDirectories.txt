@@ -1,3 +1,0 @@
-/Users/noriksaroyan/CLionProjects/UTP/build/CMakeFiles/UTP.dir
-/Users/noriksaroyan/CLionProjects/UTP/build/CMakeFiles/edit_cache.dir
-/Users/noriksaroyan/CLionProjects/UTP/build/CMakeFiles/rebuild_cache.dir
