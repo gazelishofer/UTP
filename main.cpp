@@ -112,6 +112,15 @@ void processChoice(int choice) {
 
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
+            cout << "Введите имя: ";
+            getline(cin, student.name);
+
+            cout << "Введите фамилию: ";
+            getline(cin, student.surname);
+
+            cout << "Введите отчество: ";
+            getline(cin, student.middleName);
+
             while (true) {
                 cout << "Введите год поступления: ";
                 getline(cin, input);
@@ -125,15 +134,6 @@ void processChoice(int choice) {
                 if (isNumber(input)) { student.course = stoi(input); break; }
                 cout << "Введите число!\n";
             }
-
-            cout << "Введите имя: ";
-            getline(cin, student.name);
-
-            cout << "Введите фамилию: ";
-            getline(cin, student.surname);
-
-            cout << "Введите отчество: ";
-            getline(cin, student.middleName);
 
             for (int i = 0; i < 3; i++) {
                 cout << "Введите предмет " << i + 1 << ": ";
@@ -200,9 +200,9 @@ int getConsoleWidth() {
     if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
         return csbi.srWindow.Right - csbi.srWindow.Left + 1;
     }
-    return 120; // Default fallback for Windows
+    return 120;
 #else
-    return 120; // Default for non-Windows
+
 #endif
 }
 
@@ -212,10 +212,10 @@ int utf8_width(const string& s) {
         unsigned char c = s[i];
         int len = 1;
 
-        if ((c & 0x80) == 0) len = 1;           // ASCII
-        else if ((c & 0xE0) == 0xC0) len = 2;  // 2-byte UTF-8
-        else if ((c & 0xF0) == 0xE0) len = 3;  // 3-byte UTF-8
-        else if ((c & 0xF8) == 0xF0) len = 4;  // 4-byte UTF-8
+        if ((c & 0x80) == 0) len = 1;
+        else if ((c & 0xE0) == 0xC0) len = 2;
+        else if ((c & 0xF0) == 0xE0) len = 3;
+        else if ((c & 0xF8) == 0xF0) len = 4;
 
         i += len;
         count++;
@@ -223,8 +223,7 @@ int utf8_width(const string& s) {
     return count;
 }
 
-// UTF-8 SUBSTRING BY VISIBLE CHARACTER INDICES
-// ------------------------------------------------
+
 string utf8_substr(const string& s, int start, int length) {
     if (start < 0 || length <= 0) return "";
     
@@ -236,10 +235,10 @@ string utf8_substr(const string& s, int start, int length) {
         unsigned char c = s[i];
         int len = 1;
 
-        if ((c & 0x80) == 0) len = 1;           // ASCII
-        else if ((c & 0xE0) == 0xC0) len = 2;  // 2-byte UTF-8
-        else if ((c & 0xF0) == 0xE0) len = 3;  // 3-byte UTF-8
-        else if ((c & 0xF8) == 0xF0) len = 4;  // 4-byte UTF-8
+        if ((c & 0x80) == 0) len = 1;
+        else if ((c & 0xE0) == 0xC0) len = 2;
+        else if ((c & 0xF0) == 0xE0) len = 3;
+        else if ((c & 0xF8) == 0xF0) len = 4;
 
         if (charCount >= start) {
             result += s.substr(i, len);
@@ -275,9 +274,9 @@ vector<string> wrapUtf8(const string& s, int maxWidth) {
 }
 
 void printSeparatorLine(const vector<int>& colWidths) {
-    int totalWidth = 1; // Start with 1 for the first |
+    int totalWidth = 1;
     for (size_t i = 0; i < colWidths.size(); i++) {
-        totalWidth += colWidths[i] + 2; // content + space + |
+        totalWidth += colWidths[i] + 2;
     }
     cout << string(totalWidth, '-') << "\n";
 }
@@ -320,10 +319,10 @@ void printArray() {
         "Предмет 1", "Оценки 1", "Предмет 2", "Оценки 2", "Предмет 3", "Оценки 3"
     };
     
-    // Adjust max cell width for Windows console compatibility
+
     int consoleWidth = getConsoleWidth();
     int estimatedCols = headers.size();
-    int maxTableWidth = max(80, consoleWidth - 5); // Reserve some margin
+    int maxTableWidth = max(80, consoleWidth - 5);
     int maxCellWidth = min(20, max(8, (maxTableWidth - estimatedCols * 3) / estimatedCols));
     const int MAX_CELL_WIDTH = maxCellWidth;
     vector<int> colWidths(headers.size(), 0);
@@ -334,18 +333,18 @@ void printArray() {
     
     for (int i = 0; i < studentCount; i++) {
         vector<string> rowData = {
-            to_string(i + 1),                    // No
-            to_string(students[i].year),         // Year  
-            to_string(students[i].course),       // Course
-            students[i].name,                    // Name
-            students[i].surname,                 // Surname
-            students[i].middleName,              // Middle Name
-            students[i].subjects[0],             // Subject 1
-            students[i].grades[0],               // Grades 1
-            students[i].subjects[1],             // Subject 2
-            students[i].grades[1],               // Grades 2
-            students[i].subjects[2],             // Subject 3
-            students[i].grades[2]                // Grades 3
+            to_string(i + 1),
+            to_string(students[i].year),
+            to_string(students[i].course),
+            students[i].name,
+            students[i].surname,
+            students[i].middleName,
+            students[i].subjects[0],
+            students[i].grades[0],
+            students[i].subjects[1],
+            students[i].grades[1],
+            students[i].subjects[2],
+            students[i].grades[2]
         };
         
         for (size_t j = 0; j < rowData.size(); j++) {
@@ -365,18 +364,18 @@ void printArray() {
     
     for (int i = 0; i < studentCount; i++) {
         vector<string> rowData = {
-            to_string(i + 1),                    // No
-            to_string(students[i].year),         // Year  
-            to_string(students[i].course),       // Course
-            students[i].name,                    // Name
-            students[i].surname,                 // Surname
-            students[i].middleName,              // Middle Name
-            students[i].subjects[0],             // Subject 1
-            students[i].grades[0],               // Grades 1
-            students[i].subjects[1],             // Subject 2
-            students[i].grades[1],               // Grades 2
-            students[i].subjects[2],             // Subject 3
-            students[i].grades[2]                // Grades 3
+            to_string(i + 1),
+            to_string(students[i].year),
+            to_string(students[i].course),
+            students[i].name,
+            students[i].surname,
+            students[i].middleName,
+            students[i].subjects[0],
+            students[i].grades[0],
+            students[i].subjects[1],
+            students[i].grades[1],
+            students[i].subjects[2],
+            students[i].grades[2]
         };
         
         vector<vector<string>> wrappedRow(rowData.size());
