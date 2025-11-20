@@ -206,7 +206,7 @@ int getConsoleWidth() {
 #endif
 }
 
-int utf8_width(const string& s) {
+int utf8_width(const string &s) {
     int count = 0;
     for (size_t i = 0; i < s.size(); ) {
         unsigned char c = s[i];
@@ -440,8 +440,189 @@ void expandArray() {
 }
 
 void editStudent(int index) {
-    cout << "Редактирование пока не реализовано.\n";
+    if (index < 1 || index > studentCount) {
+        cout << "Неверный номер студента.\n";
+        return;
+    }
+
+    index--;
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    while (true) {
+        cout << "\nЧто хотите изменить?\n";
+        cout << "1) Год рождения\n";
+        cout << "2) Курс\n";
+        cout << "3) Имя\n";
+        cout << "4) Фамилия\n";
+        cout << "5) Отчество\n";
+        cout << "6) Предметы и оценки\n";
+        cout << "7) Выход\n";
+        cout << "Выберите пункт: ";
+
+        int editChoice;
+        cin >> editChoice;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        switch (editChoice) {
+
+
+            case 1: {
+                string input;
+                while (true) {
+                    cout << "Введите новый год рождения: ";
+                    getline(cin, input);
+                    if (isNumber(input)) break;
+                    cout << "Ошибка: введите число!\n";
+                }
+
+                cout << "Изменить год? ";
+                if (!askPermission1()) {
+                    cout << "Отменено.\n";
+                    break;
+                }
+
+                students[index].year = stoi(input);
+                saveToFile();
+                cout << "Год рождения обновлён.\n";
+                break;
+            }
+
+
+            case 2: {
+                string input;
+                while (true) {
+                    cout << "Введите новый курс: ";
+                    getline(cin, input);
+                    if (isNumber(input)) break;
+                    cout << "Ошибка: введите число!\n";
+                }
+
+                if (!askPermission1()) {
+                    cout << "Отменено.\n";
+                    break;
+                }
+
+                students[index].course = stoi(input);
+                saveToFile();
+                cout << "Курс обновлён.\n";
+                break;
+            }
+
+
+            case 3: {
+                string name;
+                while (true) {
+                    cout << "Введите новое имя: ";
+                    getline(cin, name);
+
+                    bool ok = true;
+                    for (char c : name) {
+                        if (isdigit(c)) ok = false;
+                    }
+
+                    if (ok) break;
+                    cout << "Ошибка: имя не может содержать цифры!\n";
+                }
+
+                if (!askPermission1()) break;
+
+                students[index].name = name;
+                saveToFile();
+                cout << "Имя обновлено.\n";
+                break;
+            }
+
+
+            case 4: {
+                string surname;
+                while (true) {
+                    cout << "Введите новую фамилию: ";
+                    getline(cin, surname);
+
+                    bool ok = true;
+                    for (char c : surname) {
+                        if (isdigit(c)) ok = false;
+                    }
+
+                    if (ok) break;
+                    cout << "Ошибка: фамилия не может содержать цифры!\n";
+                }
+
+                if (!askPermission1()) break;
+
+                students[index].surname = surname;
+                saveToFile();
+                cout << "Фамилия обновлена.\n";
+                break;
+            }
+
+
+            case 5: {
+                string middle;
+                while (true) {
+                    cout << "Введите новое отчество: ";
+                    getline(cin, middle);
+
+                    bool ok = true;
+                    for (char c : middle) {
+                        if (isdigit(c)) ok = false;
+                    }
+
+                    if (ok) break;
+                    cout << "Ошибка: отчество не может содержать цифры!\n";
+                }
+
+                if (!askPermission1()) break;
+
+                students[index].middleName = middle;
+                saveToFile();
+                cout << "Отчество обновлено.\n";
+                break;
+            }
+
+
+            case 6: {
+                Student backup = students[index];
+
+                for (int i = 0; i < 3; i++) {
+                    cout << "Введите предмет " << i+1 << ": ";
+                    getline(cin, students[index].subjects[i]);
+
+                    while (true) {
+                        cout << "Введите оценки (1–5 через запятую): ";
+                        getline(cin, students[index].grades[i]);
+
+                        if (checkGrades(students[index].grades[i])) break;
+
+                        cout << "Ошибка: допустимы только числа 1–5.\n";
+                    }
+                }
+
+                if (!askPermission1()) {
+                    students[index] = backup;
+                    cout << "Отменено.\n";
+                    break;
+                }
+
+                saveToFile();
+                cout << "Предметы и оценки обновлены.\n";
+                break;
+            }
+
+
+            case 7: {
+                bool toMenu = askPermission2();
+                if (toMenu) return;
+                else break;
+            }
+
+            default:
+                cout << "Неверный пункт.\n";
+        }
+    }
 }
+
 
 void saveToFile() {
     ofstream fout(FILE1_PATH);
@@ -496,15 +677,45 @@ string toLowerUtf8(const string& s) {
     return conv.to_bytes(ws);
 }
 
-bool askPermission2() {
-    string choice;
-    cout << "Хотите продолжить? (y/n, д/н): ";
-    cin >> choice;
+bool askPermission1() {
+    while (true) {
+        cout << "Вы уверены? (y/n): ";
 
-    choice = toLowerUtf8(choice);
+        char answer;
+        if (!(cin >> answer)) {
+            cin.clear();
+            cin.ignore(10000, '\n');
+            continue;
+        }
 
-    return (choice == "y" || choice == "д");
+        cin.ignore(10000, '\n');
+        answer = tolower((unsigned char)answer);
+
+        if (answer == 'y') return true;
+        if (answer == 'n') return false;
+
+        cout << "Введите только y или n.\n";
+    }
 }
+
+
+
+
+bool askPermission2() {
+    cout << "Выйти на главное меню или на предыдущий шаг? (m/p): ";
+    char answer;
+    if (!(cin >> answer)) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        return false;
+    }
+    cin.ignore(10000, '\n');
+    answer = tolower((unsigned char)answer);
+    return answer == 'm';
+}
+
+
+
 
 
 void saveToBinaryFile() {
