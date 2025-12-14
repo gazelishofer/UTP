@@ -46,6 +46,7 @@ bool askPermission1();
 bool askPermission2();
 bool isNumber(string s);
 bool checkGrades(string s);
+bool parseIntWithLimit(const string& s, int maxLen, int &value);
 bool isValidName(const string& s);
 bool isValidCourse(int course);
 bool isValidYear(int year);
@@ -72,12 +73,9 @@ bool checkGrades(string s) {
             current.push_back(c);
         } else if (c == ',') {
             if (current.empty()) return false;
-            try {
-                int g = stoi(current);
-                if (g < 1 || g > 5) return false;
-            } catch (...) {
-                return false;
-            }
+            int g = 0;
+            if (!parseIntWithLimit(current, 1, g)) return false;
+            if (g < 1 || g > 5) return false;
             gradeCount++;
             current.clear();
         } else {
@@ -86,15 +84,21 @@ bool checkGrades(string s) {
     }
 
     if (current.empty()) return false;
-    try {
-        int g = stoi(current);
-        if (g < 1 || g > 5) return false;
-    } catch (...) {
-        return false;
-    }
+    int g = 0;
+    if (!parseIntWithLimit(current, 1, g)) return false;
+    if (g < 1 || g > 5) return false;
     gradeCount++;
 
     return gradeCount == 3;
+}
+
+bool parseIntWithLimit(const string& s, int maxLen, int &value) {
+    if (s.empty() || (int)s.size() > maxLen) return false;
+    for (char c : s) {
+        if (!isdigit(c)) return false;
+    }
+    value = stoi(s);
+    return true;
 }
 
 bool isValidName(const string& s) {
@@ -104,6 +108,11 @@ bool isValidName(const string& s) {
         unsigned char c = s[i];
 
         if (isdigit(c)) return false;
+
+        if (c == ' ') {
+            i++;
+            continue;
+        }
 
         if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
             i++;
@@ -232,18 +241,16 @@ void processChoice(int choice) {
                 cout << "Введите год рождения (1930-2010): ";
                 getline(cin, input);
                 if (isNumber(input)) {
-                    try {
-                        int year = stoi(input);
-                        if (isValidYear(year)) {
-                            student.year = year;
-                            break;
-                        } else {
-                            cout << "Ошибка: год должен быть в диапазоне 1930-2010.\n";
-                        }
-                    } catch (const out_of_range&) {
-                        cout << "Ошибка: число слишком большое. Введите год в диапазоне 1930-2010.\n";
-                    } catch (const invalid_argument&) {
-                        cout << "Ошибка: введите число!\n";
+                    if ((int)input.size() > 4) {
+                        cout << "Ошибка: год должен быть не больше 4 цифр.\n";
+                        continue;
+                    }
+                    int year = stoi(input);
+                    if (isValidYear(year)) {
+                        student.year = year;
+                        break;
+                    } else {
+                        cout << "Ошибка: год должен быть в диапазоне 1930-2010.\n";
                     }
                 } else {
                     cout << "Ошибка: введите число!\n";
@@ -254,18 +261,16 @@ void processChoice(int choice) {
                 cout << "Введите курс (0-6): ";
                 getline(cin, input);
                 if (isNumber(input)) {
-                    try {
-                        int course = stoi(input);
-                        if (isValidCourse(course)) {
-                            student.course = course;
-                            break;
-                        } else {
-                            cout << "Ошибка: курс должен быть в диапазоне 0-6.\n";
-                        }
-                    } catch (const out_of_range&) {
-                        cout << "Ошибка: число слишком большое. Введите число от 0 до 6.\n";
-                    } catch (const invalid_argument&) {
-                        cout << "Ошибка: введите число!\n";
+                    if ((int)input.size() > 1) {
+                        cout << "Ошибка: курс должен быть одной цифрой (0-6).\n";
+                        continue;
+                    }
+                    int course = stoi(input);
+                    if (isValidCourse(course)) {
+                        student.course = course;
+                        break;
+                    } else {
+                        cout << "Ошибка: курс должен быть в диапазоне 0-6.\n";
                     }
                 } else {
                     cout << "Ошибка: введите число!\n";
@@ -684,25 +689,23 @@ void editStudent(int index) {
             case 1: {
                 string input;
                 while (true) {
-                    cout << "Введите новый год рождения (1930-2010): ";
-                    getline(cin, input);
-                    if (isNumber(input)) {
-                        try {
-                            int year = stoi(input);
-                            if (isValidYear(year)) {
-                                break;
-                            } else {
-                                cout << "Ошибка: год должен быть в диапазоне 1930-2010.\n";
-                            }
-                        } catch (const out_of_range&) {
-                            cout << "Ошибка: число слишком большое. Введите год в диапазоне 1930-2010.\n";
-                        } catch (const invalid_argument&) {
-                            cout << "Ошибка: введите число!\n";
-                        }
-                    } else {
-                        cout << "Ошибка: введите число!\n";
+                cout << "Введите новый год рождения (1930-2010): ";
+                getline(cin, input);
+                if (isNumber(input)) {
+                    if ((int)input.size() > 4) {
+                        cout << "Ошибка: год должен быть не больше 4 цифр.\n";
+                        continue;
                     }
+                    int year = stoi(input);
+                    if (isValidYear(year)) {
+                        break;
+                    } else {
+                        cout << "Ошибка: год должен быть в диапазоне 1930-2010.\n";
+                    }
+                } else {
+                    cout << "Ошибка: введите число!\n";
                 }
+            }
 
                 cout << "Изменить год? ";
                 if (!askPermission1()) {
@@ -710,12 +713,7 @@ void editStudent(int index) {
                     break;
                 }
 
-                try {
-                    students[index].year = stoi(input);
-                } catch (const out_of_range&) {
-                    cout << "Ошибка: число слишком большое.\n";
-                    break;
-                }
+                students[index].year = stoi(input);
                 saveToFile();
                 cout << "Год рождения обновлён.\n";
                 break;
@@ -725,37 +723,30 @@ void editStudent(int index) {
             case 2: {
                 string input;
                 while (true) {
-                    cout << "Введите новый курс (0-6): ";
-                    getline(cin, input);
-                    if (isNumber(input)) {
-                        try {
-                            int course = stoi(input);
-                            if (isValidCourse(course)) {
-                                break;
-                            } else {
-                                cout << "Ошибка: курс должен быть в диапазоне 0-6.\n";
-                            }
-                        } catch (const out_of_range&) {
-                            cout << "Ошибка: число слишком большое. Введите число от 0 до 6.\n";
-                        } catch (const invalid_argument&) {
-                            cout << "Ошибка: введите число!\n";
-                        }
-                    } else {
-                        cout << "Ошибка: введите число!\n";
+                cout << "Введите новый курс (0-6): ";
+                getline(cin, input);
+                if (isNumber(input)) {
+                    if ((int)input.size() > 1) {
+                        cout << "Ошибка: курс должен быть одной цифрой (0-6).\n";
+                        continue;
                     }
+                    int course = stoi(input);
+                    if (isValidCourse(course)) {
+                        break;
+                    } else {
+                        cout << "Ошибка: курс должен быть в диапазоне 0-6.\n";
+                    }
+                } else {
+                    cout << "Ошибка: введите число!\n";
                 }
+            }
 
                 if (!askPermission1()) {
                     cout << "Отменено.\n";
                     break;
                 }
 
-                try {
-                    students[index].course = stoi(input);
-                } catch (const out_of_range&) {
-                    cout << "Ошибка: число слишком большое.\n";
-                    break;
-                }
+                students[index].course = stoi(input);
                 saveToFile();
                 cout << "Курс обновлён.\n";
                 break;
