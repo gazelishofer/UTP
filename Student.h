@@ -17,6 +17,5 @@ struct Student {
 };
 
 
-#endif // UTP_STUDENT_H
-
+#endif
 

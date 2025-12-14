@@ -21,8 +21,8 @@ Student *students = new Student[10];
 int studentCount = 0;
 int capacity = 10;
 
-const string FILE1_PATH = "C:/Users/user/CLionProjects/UTP/forStudents.txt";
-const string FILE2_PATH = "C:/Users/user/CLionProjects/UTP/forStudents.bin";
+const string FILE1_PATH = "forStudents.txt";
+const string FILE2_PATH = "forStudents.bin";
 
 void processChoice(int choice);
 
@@ -36,6 +36,7 @@ void printArray();
 int getConsoleWidth();
 void addStudentToArray(const Student &student);
 void sortStudentsByYear();
+void sortStudents(int sortBy);
 bool checkAvailability();
 void saveToFile();
 void loadFromFile();
@@ -45,6 +46,10 @@ bool askPermission1();
 bool askPermission2();
 bool isNumber(string s);
 bool checkGrades(string s);
+bool isValidName(const string& s);
+bool isValidCourse(int course);
+bool isValidYear(int year);
+bool isValidSubject(const string& s);
 
 bool isNumber(string s) {
     if (s.empty()) return false;
@@ -56,21 +61,110 @@ bool isNumber(string s) {
 
 bool checkGrades(string s) {
     if (s.empty()) return false;
-    string num = "";
-    for (int i = 0; i < s.size(); i++) {
+
+    int gradeCount = 0;
+    string current = "";
+
+    for (size_t i = 0; i < s.size(); i++) {
         char c = s[i];
+
         if (isdigit(c)) {
-            num += c;
-        } else if (c != ',') {
+            current.push_back(c);
+        } else if (c == ',') {
+            if (current.empty()) return false;
+            try {
+                int g = stoi(current);
+                if (g < 1 || g > 5) return false;
+            } catch (...) {
+                return false;
+            }
+            gradeCount++;
+            current.clear();
+        } else {
             return false;
         }
-        if (c == ',' || i == s.size() - 1) {
-            if (!num.empty()) {
-                int g = stoi(num);
-                if (g < 1 || g > 5) return false;
-                num = "";
-            }
+    }
+
+    if (current.empty()) return false;
+    try {
+        int g = stoi(current);
+        if (g < 1 || g > 5) return false;
+    } catch (...) {
+        return false;
+    }
+    gradeCount++;
+
+    return gradeCount == 3;
+}
+
+bool isValidName(const string& s) {
+    if (s.empty()) return false;
+
+    for (size_t i = 0; i < s.size(); ) {
+        unsigned char c = s[i];
+
+        if (isdigit(c)) return false;
+
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+            i++;
+            continue;
         }
+
+        if ((c & 0x80) == 0) {
+            return false;
+        } else if ((c & 0xC0) != 0x80) {
+            int len = 1;
+            if ((c & 0xE0) == 0xC0) len = 2;
+            else if ((c & 0xF0) == 0xE0) len = 3;
+            else if ((c & 0xF8) == 0xF0) len = 4;
+
+            if (i + len > s.size()) return false;
+
+            i += len;
+            continue;
+        }
+
+        return false;
+    }
+    return true;
+}
+
+bool isValidCourse(int course) {
+    return course >= 0 && course <= 6;
+}
+
+bool isValidYear(int year) {
+    return year >= 1930 && year <= 2010;
+}
+
+bool isValidSubject(const string& s) {
+    if (s.empty()) return false;
+
+    for (size_t i = 0; i < s.size(); ) {
+        unsigned char c = s[i];
+
+        if (isdigit(c)) return false;
+
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+            i++;
+            continue;
+        }
+
+        if ((c & 0x80) == 0) {
+            return false;
+        } else if ((c & 0xC0) != 0x80) {
+            int len = 1;
+            if ((c & 0xE0) == 0xC0) len = 2;
+            else if ((c & 0xF0) == 0xE0) len = 3;
+            else if ((c & 0xF8) == 0xF0) len = 4;
+
+            if (i + len > s.size()) return false;
+
+            i += len;
+            continue;
+        }
+
+        return false;
     }
     return true;
 }
@@ -92,11 +186,12 @@ int main() {
         cout << "5) Сохранить бинарный файл\n";
         cout << "6) Загрузить данные\n";
         cout << "7) Показать список\n";
-        cout << "8) Выход\n";
+        cout << "8) Сортировать студентов\n";
+        cout << "9) Выход\n";
         cout << "Выберите пункт: ";
         cin >> choice;
 
-        if (choice == 8) break;
+        if (choice == 9) break;
         processChoice(choice);
     }
     return 0;
@@ -112,38 +207,84 @@ void processChoice(int choice) {
 
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-            cout << "Введите имя: ";
-            getline(cin, student.name);
-
-            cout << "Введите фамилию: ";
-            getline(cin, student.surname);
-
-            cout << "Введите отчество: ";
-            getline(cin, student.middleName);
-
             while (true) {
-                cout << "Введите год поступления: ";
-                getline(cin, input);
-                if (isNumber(input)) { student.year = stoi(input); break; }
-                cout << "Введите число!\n";
+                cout << "Введите имя (только русские или английские буквы): ";
+                getline(cin, student.name);
+                if (isValidName(student.name)) break;
+                cout << "Ошибка: имя может содержать только русские или английские буквы.\n";
             }
 
             while (true) {
-                cout << "Введите курс: ";
+                cout << "Введите фамилию (только русские или английские буквы): ";
+                getline(cin, student.surname);
+                if (isValidName(student.surname)) break;
+                cout << "Ошибка: фамилия может содержать только русские или английские буквы.\n";
+            }
+
+            while (true) {
+                cout << "Введите отчество (только русские или английские буквы): ";
+                getline(cin, student.middleName);
+                if (isValidName(student.middleName)) break;
+                cout << "Ошибка: отчество может содержать только русские или английские буквы.\n";
+            }
+
+            while (true) {
+                cout << "Введите год рождения (1930-2010): ";
                 getline(cin, input);
-                if (isNumber(input)) { student.course = stoi(input); break; }
-                cout << "Введите число!\n";
+                if (isNumber(input)) {
+                    try {
+                        int year = stoi(input);
+                        if (isValidYear(year)) {
+                            student.year = year;
+                            break;
+                        } else {
+                            cout << "Ошибка: год должен быть в диапазоне 1930-2010.\n";
+                        }
+                    } catch (const out_of_range&) {
+                        cout << "Ошибка: число слишком большое. Введите год в диапазоне 1930-2010.\n";
+                    } catch (const invalid_argument&) {
+                        cout << "Ошибка: введите число!\n";
+                    }
+                } else {
+                    cout << "Ошибка: введите число!\n";
+                }
+            }
+
+            while (true) {
+                cout << "Введите курс (0-6): ";
+                getline(cin, input);
+                if (isNumber(input)) {
+                    try {
+                        int course = stoi(input);
+                        if (isValidCourse(course)) {
+                            student.course = course;
+                            break;
+                        } else {
+                            cout << "Ошибка: курс должен быть в диапазоне 0-6.\n";
+                        }
+                    } catch (const out_of_range&) {
+                        cout << "Ошибка: число слишком большое. Введите число от 0 до 6.\n";
+                    } catch (const invalid_argument&) {
+                        cout << "Ошибка: введите число!\n";
+                    }
+                } else {
+                    cout << "Ошибка: введите число!\n";
+                }
             }
 
             for (int i = 0; i < 3; i++) {
-                cout << "Введите предмет " << i + 1 << ": ";
-                getline(cin, student.subjects[i]);
+                while (true) {
+                    cout << "Введите предмет " << i + 1 << " (только русские или английские буквы): ";
+                    getline(cin, student.subjects[i]);
+                    if (isValidSubject(student.subjects[i])) break;
+                    cout << "Ошибка: название предмета может содержать только русские или английские буквы.\n";
+                }
 
                 while (true) {
-                    cout << "Введите оценки по предмету (1–5, через запятую): ";
+                    cout << "Введите 3 оценки (1–5, через запятую, например: 5,4,3): ";
                     getline(cin, student.grades[i]);
                     if (checkGrades(student.grades[i])) break;
-                    cout << "Ошибка: допустимы только числа 1–5 через запятую.\n";
+                    cout << "Ошибка: введите ровно 3 оценки (числа 1–5 через запятую).\n";
                 }
             }
 
@@ -178,13 +319,50 @@ void processChoice(int choice) {
             saveToBinaryFile();
             break;
 
-        case 6:
-            loadFromFile();
+        case 6: {
+            cout << "\nЗагрузить из:\n";
+            cout << "1) Текстового файла\n";
+            cout << "2) Бинарного файла\n";
+            cout << "Выберите источник: ";
+
+            int loadChoice;
+            cin >> loadChoice;
+
+            if (loadChoice == 1) {
+                loadFromFile();
+            } else if (loadChoice == 2) {
+                loadFromBinaryFile();
+            } else {
+                cout << "Неверный выбор.\n";
+            }
             break;
+        }
 
         case 7:
             printArray();
             break;
+
+        case 8: {
+            cout << "\nСортировать по:\n";
+            cout << "1) Году рождения\n";
+            cout << "2) Курсу\n";
+            cout << "3) Имени\n";
+            cout << "4) Фамилии\n";
+            cout << "5) Отчеству\n";
+            cout << "Выберите поле для сортировки: ";
+
+            int sortChoice;
+            cin >> sortChoice;
+
+            if (sortChoice >= 1 && sortChoice <= 5) {
+                sortStudents(sortChoice);
+                cout << "Студенты отсортированы.\n\n";
+                printArray();
+            } else {
+                cout << "Неверный выбор.\n";
+            }
+            break;
+        }
 
         default:
             cout << "Неверный пункт меню.\n";
@@ -202,7 +380,7 @@ int getConsoleWidth() {
     }
     return 120;
 #else
-
+    return 120;
 #endif
 }
 
@@ -311,8 +489,6 @@ void printArray() {
         cout << "Нет студентов.\n";
         return;
     }
-    
-    sortStudentsByYear();
 
     vector<string> headers = {
         "№", "Год", "Курс", "Имя", "Фамилия", "Отчество",
@@ -390,9 +566,47 @@ void printArray() {
 }
 
 void sortStudentsByYear() {
+    sortStudents(1);
+}
+
+void sortStudents(int sortBy) {
+    if (studentCount <= 1) return;
+
     for (int i = 0; i < studentCount - 1; i++) {
         for (int j = 0; j < studentCount - i - 1; j++) {
-            if (students[j].year > students[j + 1].year) {
+            bool shouldSwap = false;
+
+            switch (sortBy) {
+                case 1:
+                    shouldSwap = students[j].year > students[j + 1].year;
+                    break;
+                case 2:
+                    shouldSwap = students[j].course > students[j + 1].course;
+                    break;
+                case 3: {
+                    string name1 = toLowerUtf8(students[j].name);
+                    string name2 = toLowerUtf8(students[j + 1].name);
+                    shouldSwap = name1 > name2;
+                    break;
+                }
+                case 4: {
+                    string surname1 = toLowerUtf8(students[j].surname);
+                    string surname2 = toLowerUtf8(students[j + 1].surname);
+                    shouldSwap = surname1 > surname2;
+                    break;
+                }
+                case 5: {
+                    string middle1 = toLowerUtf8(students[j].middleName);
+                    string middle2 = toLowerUtf8(students[j + 1].middleName);
+                    shouldSwap = middle1 > middle2;
+                    break;
+                }
+                default:
+                    cout << "Неверный параметр сортировки.\n";
+                    return;
+            }
+
+            if (shouldSwap) {
                 Student temp = students[j];
                 students[j] = students[j + 1];
                 students[j + 1] = temp;
@@ -470,10 +684,24 @@ void editStudent(int index) {
             case 1: {
                 string input;
                 while (true) {
-                    cout << "Введите новый год рождения: ";
+                    cout << "Введите новый год рождения (1930-2010): ";
                     getline(cin, input);
-                    if (isNumber(input)) break;
-                    cout << "Ошибка: введите число!\n";
+                    if (isNumber(input)) {
+                        try {
+                            int year = stoi(input);
+                            if (isValidYear(year)) {
+                                break;
+                            } else {
+                                cout << "Ошибка: год должен быть в диапазоне 1930-2010.\n";
+                            }
+                        } catch (const out_of_range&) {
+                            cout << "Ошибка: число слишком большое. Введите год в диапазоне 1930-2010.\n";
+                        } catch (const invalid_argument&) {
+                            cout << "Ошибка: введите число!\n";
+                        }
+                    } else {
+                        cout << "Ошибка: введите число!\n";
+                    }
                 }
 
                 cout << "Изменить год? ";
@@ -482,7 +710,12 @@ void editStudent(int index) {
                     break;
                 }
 
-                students[index].year = stoi(input);
+                try {
+                    students[index].year = stoi(input);
+                } catch (const out_of_range&) {
+                    cout << "Ошибка: число слишком большое.\n";
+                    break;
+                }
                 saveToFile();
                 cout << "Год рождения обновлён.\n";
                 break;
@@ -492,10 +725,24 @@ void editStudent(int index) {
             case 2: {
                 string input;
                 while (true) {
-                    cout << "Введите новый курс: ";
+                    cout << "Введите новый курс (0-6): ";
                     getline(cin, input);
-                    if (isNumber(input)) break;
-                    cout << "Ошибка: введите число!\n";
+                    if (isNumber(input)) {
+                        try {
+                            int course = stoi(input);
+                            if (isValidCourse(course)) {
+                                break;
+                            } else {
+                                cout << "Ошибка: курс должен быть в диапазоне 0-6.\n";
+                            }
+                        } catch (const out_of_range&) {
+                            cout << "Ошибка: число слишком большое. Введите число от 0 до 6.\n";
+                        } catch (const invalid_argument&) {
+                            cout << "Ошибка: введите число!\n";
+                        }
+                    } else {
+                        cout << "Ошибка: введите число!\n";
+                    }
                 }
 
                 if (!askPermission1()) {
@@ -503,7 +750,12 @@ void editStudent(int index) {
                     break;
                 }
 
-                students[index].course = stoi(input);
+                try {
+                    students[index].course = stoi(input);
+                } catch (const out_of_range&) {
+                    cout << "Ошибка: число слишком большое.\n";
+                    break;
+                }
                 saveToFile();
                 cout << "Курс обновлён.\n";
                 break;
@@ -513,16 +765,10 @@ void editStudent(int index) {
             case 3: {
                 string name;
                 while (true) {
-                    cout << "Введите новое имя: ";
+                    cout << "Введите новое имя (только русские или английские буквы): ";
                     getline(cin, name);
-
-                    bool ok = true;
-                    for (char c : name) {
-                        if (isdigit(c)) ok = false;
-                    }
-
-                    if (ok) break;
-                    cout << "Ошибка: имя не может содержать цифры!\n";
+                    if (isValidName(name)) break;
+                    cout << "Ошибка: имя может содержать только русские или английские буквы.\n";
                 }
 
                 if (!askPermission1()) break;
@@ -537,16 +783,10 @@ void editStudent(int index) {
             case 4: {
                 string surname;
                 while (true) {
-                    cout << "Введите новую фамилию: ";
+                    cout << "Введите новую фамилию (только русские или английские буквы): ";
                     getline(cin, surname);
-
-                    bool ok = true;
-                    for (char c : surname) {
-                        if (isdigit(c)) ok = false;
-                    }
-
-                    if (ok) break;
-                    cout << "Ошибка: фамилия не может содержать цифры!\n";
+                    if (isValidName(surname)) break;
+                    cout << "Ошибка: фамилия может содержать только русские или английские буквы.\n";
                 }
 
                 if (!askPermission1()) break;
@@ -561,16 +801,10 @@ void editStudent(int index) {
             case 5: {
                 string middle;
                 while (true) {
-                    cout << "Введите новое отчество: ";
+                    cout << "Введите новое отчество (только русские или английские буквы): ";
                     getline(cin, middle);
-
-                    bool ok = true;
-                    for (char c : middle) {
-                        if (isdigit(c)) ok = false;
-                    }
-
-                    if (ok) break;
-                    cout << "Ошибка: отчество не может содержать цифры!\n";
+                    if (isValidName(middle)) break;
+                    cout << "Ошибка: отчество может содержать только русские или английские буквы.\n";
                 }
 
                 if (!askPermission1()) break;
@@ -586,16 +820,20 @@ void editStudent(int index) {
                 Student backup = students[index];
 
                 for (int i = 0; i < 3; i++) {
-                    cout << "Введите предмет " << i+1 << ": ";
-                    getline(cin, students[index].subjects[i]);
+                    while (true) {
+                        cout << "Введите предмет " << i+1 << " (только русские или английские буквы): ";
+                        getline(cin, students[index].subjects[i]);
+                        if (isValidSubject(students[index].subjects[i])) break;
+                        cout << "Ошибка: название предмета может содержать только русские или английские буквы.\n";
+                    }
 
                     while (true) {
-                        cout << "Введите оценки (1–5 через запятую): ";
+                        cout << "Введите 3 оценки (1–5, через запятую, например: 5,4,3): ";
                         getline(cin, students[index].grades[i]);
 
                         if (checkGrades(students[index].grades[i])) break;
 
-                        cout << "Ошибка: допустимы только числа 1–5.\n";
+                        cout << "Ошибка: введите ровно 3 оценки (числа 1–5 через запятую).\n";
                     }
                 }
 
@@ -647,8 +885,7 @@ void saveToFile() {
 void loadFromFile() {
     ifstream fin(FILE1_PATH);
     if (!fin) {
-        cout << "Текстовый файл не найден. Загрузка бинарного...\n";
-        loadFromBinaryFile();
+        cout << "Ошибка: текстовый файл не найден.\n";
         return;
     }
     studentCount = 0;
@@ -664,6 +901,7 @@ void loadFromFile() {
         if (studentCount >= capacity) expandArray();
     }
     fin.close();
+    sortStudentsByYear();
     cout << "Текстовый файл загружен.\n";
 }
 
@@ -698,9 +936,6 @@ bool askPermission1() {
     }
 }
 
-
-
-
 bool askPermission2() {
     cout << "Выйти на главное меню или на предыдущий шаг? (m/p): ";
     char answer;
@@ -714,10 +949,6 @@ bool askPermission2() {
     return answer == 'm';
 }
 
-
-
-
-
 void saveToBinaryFile() {
     ofstream fout(FILE2_PATH, ios::binary);
     if (!fout) {
@@ -725,7 +956,32 @@ void saveToBinaryFile() {
         return;
     }
     fout.write((char*)&studentCount, sizeof(studentCount));
-    fout.write((char*)students, sizeof(Student) * studentCount);
+    for (int i = 0; i < studentCount; i++) {
+        fout.write((char*)&students[i].year, sizeof(students[i].year));
+        fout.write((char*)&students[i].course, sizeof(students[i].course));
+
+        int nameLen = students[i].name.length();
+        fout.write((char*)&nameLen, sizeof(nameLen));
+        fout.write(students[i].name.c_str(), nameLen);
+
+        int surnameLen = students[i].surname.length();
+        fout.write((char*)&surnameLen, sizeof(surnameLen));
+        fout.write(students[i].surname.c_str(), surnameLen);
+
+        int middleNameLen = students[i].middleName.length();
+        fout.write((char*)&middleNameLen, sizeof(middleNameLen));
+        fout.write(students[i].middleName.c_str(), middleNameLen);
+
+        for (int j = 0; j < 3; j++) {
+            int subjectLen = students[i].subjects[j].length();
+            fout.write((char*)&subjectLen, sizeof(subjectLen));
+            fout.write(students[i].subjects[j].c_str(), subjectLen);
+
+            int gradeLen = students[i].grades[j].length();
+            fout.write((char*)&gradeLen, sizeof(gradeLen));
+            fout.write(students[i].grades[j].c_str(), gradeLen);
+        }
+    }
     fout.close();
     cout << "Бинарный файл сохранён.\n";
 }
@@ -745,8 +1001,40 @@ void loadFromBinaryFile() {
         capacity = countFromFile;
     }
 
-    fin.read((char*)students, sizeof(Student) * countFromFile);
+    for (int i = 0; i < countFromFile; i++) {
+        fin.read((char*)&students[i].year, sizeof(students[i].year));
+        fin.read((char*)&students[i].course, sizeof(students[i].course));
+
+        int nameLen = 0;
+        fin.read((char*)&nameLen, sizeof(nameLen));
+        students[i].name.resize(nameLen);
+        fin.read(&students[i].name[0], nameLen);
+
+        int surnameLen = 0;
+        fin.read((char*)&surnameLen, sizeof(surnameLen));
+        students[i].surname.resize(surnameLen);
+        fin.read(&students[i].surname[0], surnameLen);
+
+        int middleNameLen = 0;
+        fin.read((char*)&middleNameLen, sizeof(middleNameLen));
+        students[i].middleName.resize(middleNameLen);
+        fin.read(&students[i].middleName[0], middleNameLen);
+
+        for (int j = 0; j < 3; j++) {
+            int subjectLen = 0;
+            fin.read((char*)&subjectLen, sizeof(subjectLen));
+            students[i].subjects[j].resize(subjectLen);
+            fin.read(&students[i].subjects[j][0], subjectLen);
+
+            int gradeLen = 0;
+            fin.read((char*)&gradeLen, sizeof(gradeLen));
+            students[i].grades[j].resize(gradeLen);
+            fin.read(&students[i].grades[j][0], gradeLen);
+        }
+    }
+
     studentCount = countFromFile;
     fin.close();
+    sortStudentsByYear();
     cout << "Бинарный файл загружен.\n";
 }
