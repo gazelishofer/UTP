@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/c++  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk -mmacosx-version-min=13.7 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/UTP.dir/main.cpp.o CMakeFiles/UTP.dir/Student.cpp.o -o UTP
