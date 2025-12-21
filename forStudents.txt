@@ -1,5 +1,2 @@
-2007 4 Norik Saroyan Avetikovich math 4,5,5 VP 4,4,5 injgraf 4,4,4 
-2006 2 Edmond Saroyan Avetikovich math 4,5,5 VP 4,4,5 injgraf 4,4,4 
-2010 1 Egor Morozov AAAAA math 4,5,5 VP 4,4,5 injgraf 4,4,4 
-2012 5 Ekaterinia Marhenko CCCCCC math 4,5,5 VP 4,4,5 injgraf 4,4,4 
-2003 6 Ilya Solobyov GHGHGHGHG math 4,5,5 VP 4,4,5 injgraf 4,4,4
+2004|3|Norik|Saroyan|Avetikovich|Math|4,4,4|Mat. analiz|5,5,5|angl|5,5,5
+2004|3|Ilya|Solovyov|AAAHfhfhfhfh|Math ik|4,5,4|Mat. analiz|5,3,5|angl|3,5,5

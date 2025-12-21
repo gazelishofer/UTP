@@ -51,6 +51,9 @@ bool isValidName(const string &s);
 bool isValidCourse(int course);
 bool isValidYear(int year);
 bool isValidSubject(const string &s);
+bool splitLine(const string &line, char delimiter, vector<string> &fields, int expectedFields);
+bool parseGradesSumCount(const string &grades, int &sum, int &count);
+double calcAverageGrade(const Student &student);
 
 bool isNumber(string s)
 {
@@ -451,12 +454,13 @@ void processChoice(int choice)
         cout << "3) Имени\n";
         cout << "4) Фамилии\n";
         cout << "5) Отчеству\n";
+        cout << "6) Оценкам\n";
         cout << "Выберите поле для сортировки: ";
 
         int sortChoice;
         cin >> sortChoice;
 
-        if (sortChoice >= 1 && sortChoice <= 5)
+        if (sortChoice >= 1 && sortChoice <= 6)
         {
             cout << "Порядок:\n";
             cout << "1) По возрастанию\n";
@@ -750,6 +754,13 @@ void sortStudents(int sortBy, bool ascending)
                 string middle1 = toLowerUtf8(students[j].middleName);
                 string middle2 = toLowerUtf8(students[j + 1].middleName);
                 shouldSwap = ascending ? (middle1 > middle2) : (middle1 < middle2);
+                break;
+            }
+            case 6:
+            {
+                double avg1 = calcAverageGrade(students[j]);
+                double avg2 = calcAverageGrade(students[j + 1]);
+                shouldSwap = ascending ? (avg1 > avg2) : (avg1 < avg2);
                 break;
             }
             default:
@@ -1054,13 +1065,17 @@ void saveToFile()
     }
     for (int i = 0; i < studentCount; i++)
     {
-        fout << students[i].year << " "
-             << students[i].course << " "
-             << students[i].name << " "
-             << students[i].surname << " "
-             << students[i].middleName << " ";
+        fout << students[i].year << "|"
+             << students[i].course << "|"
+             << students[i].name << "|"
+             << students[i].surname << "|"
+             << students[i].middleName << "|";
         for (int j = 0; j < 3; j++)
-            fout << students[i].subjects[j] << " " << students[i].grades[j] << " ";
+        {
+            fout << students[i].subjects[j] << "|" << students[i].grades[j];
+            if (j != 2)
+                fout << "|";
+        }
         fout << "\n";
     }
     fout.close();
@@ -1076,10 +1091,30 @@ void loadFromFile()
         return;
     }
     studentCount = 0;
-    while (fin >> students[studentCount].year >> students[studentCount].course >> students[studentCount].name >> students[studentCount].surname >> students[studentCount].middleName)
+    string line;
+    while (getline(fin, line))
     {
-        for (int j = 0; j < 3; j++)
-            fin >> students[studentCount].subjects[j] >> students[studentCount].grades[j];
+        if (line.empty())
+            continue;
+
+        vector<string> fields;
+        if (!splitLine(line, '|', fields, 11))
+        {
+            cout << "Ошибка: неверный формат строки в файле.\n";
+            continue;
+        }
+
+        students[studentCount].year = stoi(fields[0]);
+        students[studentCount].course = stoi(fields[1]);
+        students[studentCount].name = fields[2];
+        students[studentCount].surname = fields[3];
+        students[studentCount].middleName = fields[4];
+        students[studentCount].subjects[0] = fields[5];
+        students[studentCount].grades[0] = fields[6];
+        students[studentCount].subjects[1] = fields[7];
+        students[studentCount].grades[1] = fields[8];
+        students[studentCount].subjects[2] = fields[9];
+        students[studentCount].grades[2] = fields[10];
 
         studentCount++;
         if (studentCount >= capacity)
@@ -1088,6 +1123,78 @@ void loadFromFile()
     fin.close();
     sortStudentsByYear();
     cout << "Текстовый файл загружен.\n";
+}
+
+bool splitLine(const string &line, char delimiter, vector<string> &fields, int expectedFields)
+{
+    fields.clear();
+    string current;
+    for (size_t i = 0; i < line.size(); i++)
+    {
+        char c = line[i];
+        if (c == delimiter)
+        {
+            fields.push_back(current);
+            current.clear();
+        }
+        else
+        {
+            current.push_back(c);
+        }
+    }
+    fields.push_back(current);
+    return (int)fields.size() == expectedFields;
+}
+
+bool parseGradesSumCount(const string &grades, int &sum, int &count)
+{
+    sum = 0;
+    count = 0;
+    string current;
+    for (size_t i = 0; i < grades.size(); i++)
+    {
+        char c = grades[i];
+        if (isdigit(c))
+        {
+            current.push_back(c);
+            continue;
+        }
+        if (c == ',')
+        {
+            if (current.empty())
+                return false;
+            int value = stoi(current);
+            sum += value;
+            count++;
+            current.clear();
+            continue;
+        }
+        return false;
+    }
+    if (current.empty())
+        return false;
+    sum += stoi(current);
+    count++;
+    return count > 0;
+}
+
+double calcAverageGrade(const Student &student)
+{
+    int totalSum = 0;
+    int totalCount = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        int sum = 0;
+        int count = 0;
+        if (parseGradesSumCount(student.grades[i], sum, count))
+        {
+            totalSum += sum;
+            totalCount += count;
+        }
+    }
+    if (totalCount == 0)
+        return 0.0;
+    return static_cast<double>(totalSum) / static_cast<double>(totalCount);
 }
 
 string toLowerUtf8(const string &s)
